@@ -84,16 +84,16 @@ all(...)
 any(...)
 count
 range
-score
-tag
-enact
-action
+emit
+do
 ```
 
 These keywords are **declarative only**.  
 They describe intent and conditions, not procedural control flow.
-
 Action do not perform work. They express authorization.
+
+>No keyword introduces control flow, looping, recursion, or state mutation.
+All constructs are evaluated as pure expressions over supplied evidence.
 
 ---
 

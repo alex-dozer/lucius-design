@@ -197,6 +197,7 @@ Because of this, Lucius does **not** attempt to preserve full semantic meaning o
 - Minimal coupling to language- or format-specific structure
 
 Uses DuckDB to get signatures provided by operators imported through adapters.
+
 ---
 
 ### lfin (finalize)

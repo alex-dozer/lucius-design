@@ -55,7 +55,6 @@ lthreat! {
         // -------------------------------------------------------------
         operation internal_malware_feed {
             provider = "org-threat-intel"
-            url = "someorgprovider.com"
             hashes   = [ sha256, sha1 ]
 
             authority {
@@ -76,7 +75,6 @@ lthreat! {
         // -------------------------------------------------------------
         operation public_reputation_feed {
             provider = "public-reputation-api"
-            url = "somerepprovider.org"
             hashes   = [ sha256 ]
 
             authority {

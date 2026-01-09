@@ -1,31 +1,30 @@
-### lfin Configuration Macro - Purpose and Scope
-
 ```rust
 // -----------------------------------------------------------------------------
 // lfin! — Lucius Finalization & Outcome DSL
 //
 // Purpose:
-// - Consolidate accumulated signals, tags, scores, and intents
-// - Produce final, human- and system-consumable outcomes
-// - Decide *how results are expressed*, not how they were derived
+// - Consolidate all upstream facts, signals, and scores
+// - Express a final, stable outcome
+// - Produce human- and system-consumable conclusions
 //
 // lfin does NOT:
-// - Perform detection
-// - Generate new signals from raw data
-// - Re-run analysis
+// - Perform analysis
+// - Generate new observations
+// - Accumulate score
 // - Execute actions
 //
+// lfin is the *last interpretive step* inside Lucius.
+// Everything after this is mediation, orchestration, or policy.
+//
 // Inputs:
-// - Signals from lstran!, lyara!, lstatic!, lthreat!
-// - Score accumulated upstream
-// - Escalation decisions (e.g., Assessor outcomes)
+// - Signals from lstran, lstatic, lyara, lthreat
+// - Accumulated score
+// - Assessor routing outcomes
 //
 // Outputs:
-// - Final verdict classification
-// - Final tags and summaries
-// - Emissions to Notary (system-level intent)
-//
-// lfin is the *last interpretive step* inside Lucius.
+// - Final outcome classification
+// - Final tags
+// - Final emissions to Notary
 // -----------------------------------------------------------------------------
 
 lfin! {
@@ -33,161 +32,178 @@ lfin! {
     // -------------------------------------------------------------------------
     // META
     //
-    // Identity, audit, and versioning.
+    // Identity, audit, and ownership.
     // -------------------------------------------------------------------------
     meta {
         name        = "default_finalization_policy"
         author      = "org-security"
-        source      = "internal-policy"
+        source      = "analysis-policy"
         version     = "1.0.0"
 
-        description = "Final consolidation and outcome expression for Lucius analysis"
+        description = "Final consolidation and outcome expression for Lucius"
     }
 
     // -------------------------------------------------------------------------
-    // OUTCOMES
+    // OPERATIONS
     //
-    // Declares the terminal outcome states Lucius may assign.
-    // These are descriptive, not executable.
+    // Operations define *interpretive groupings* over existing facts.
+    //
+    // They:
+    // - Combine signals and score into stable predicates
+    // - Encode final reasoning structure
+    // - Do NOT mutate state
+    //
+    // Think: "How do we recognize a terminal condition?"
     // -------------------------------------------------------------------------
-    outcomes {
+    operations {
 
-        outcome Benign {
-            description = "Artifact exhibits no meaningful indicators of maliciousness"
-            severity    = low
+        // -------------------------------------------------------------
+        // Strong benign posture
+        // -------------------------------------------------------------
+        operation confidently_benign {
+            when all(
+                lstran.signal.format.known_benign,
+                score < 0.3,
+                not any(
+                    lyara.signal.signature.known_malware,
+                    lstatic.signal.execution.advanced_technique,
+                    lthreat.signal.reputation.corroborated_intel
+                )
+            )
         }
 
-        outcome Suspicious {
-            description = "Artifact exhibits elevated risk or ambiguity requiring review"
-            severity    = medium
+        // -------------------------------------------------------------
+        // Corroborated malicious indicators
+        // -------------------------------------------------------------
+        operation confirmed_malicious {
+            when any(
+                all(
+                    lyara.signal.signature.known_malware,
+                    lthreat.signal.reputation.corroborated_intel
+                ),
+                all(
+                    lstatic.signal.execution.advanced_technique,
+                    score >= 0.85
+                )
+            )
         }
 
-        outcome Malicious {
-            description = "Artifact exhibits strong, corroborated malicious indicators"
-            severity    = high
+        // -------------------------------------------------------------
+        // Suspicious but inconclusive
+        // -------------------------------------------------------------
+        operation suspicious_behavior {
+            when all(
+                score >= 0.6,
+                score < 0.85,
+                not operation.confirmed_malicious
+            )
         }
 
-        outcome Inconclusive {
-            description = "Analysis incomplete or insufficient to reach confidence"
-            severity    = unknown
+        // -------------------------------------------------------------
+        // Analysis integrity failure
+        // -------------------------------------------------------------
+        operation inconclusive_analysis {
+            when any(
+                lstran.signal.analysis.bounds_exceeded,
+                lstran.signal.analysis.partial_parse,
+                lstatic.signal.analysis.incomplete
+            )
         }
     }
-
-// -------------------------------------------------------------------------
-// FINALIZATION LOGIC
-//
-// Conditions here reason over:
-// - Accumulated score
-// - Presence or absence of specific signals
-// - Assessor decisions
-//
-// No mutation. No scoring. No execution.
-// -------------------------------------------------------------------------
-conditions {
-
-    // -------------------------------------------------------------
-    // HARD BENIGN
-    //
-    // Strong evidence of benign structure and behavior,
-    // with no corroborating malicious indicators.
-    // -------------------------------------------------------------
-    when all(
-        lstran.signal.format.known_benign,
-        not any(
-            lstran.signal.format.mismatch,
-            lyara.signal.signature.known_malware,
-            lthreat.signal.feed.known_malware_family
-        )
-    ) {
-        set outcome = Benign
-        tag += "final:benign"
-    }
-
-    // -------------------------------------------------------------
-    // MALICIOUS (HIGH CONFIDENCE)
-    //
-    // Multiple independent corroborations.
-    // -------------------------------------------------------------
-    when all(
-        lyara.signal.signature.known_malware,
-        lthreat.signal.feed.corroborated_intel
-    ) {
-        set outcome = Malicious
-        tag += "final:malicious"
-        emit Emission::ConfirmedMalware
-    }
-
-    // -------------------------------------------------------------
-    // MALICIOUS (CAPABILITY-BASED)
-    //
-    // Strong behavioral indicators even without signature match.
-    // -------------------------------------------------------------
-    when all(
-        lstatic.signal.execution.advanced_technique,
-        score >= 0.85
-    ) {
-        set outcome += Malicious
-        tag += "final:malicious-capability"
-        emit Emission::HighRiskBehavior
-    }
-
-    // -------------------------------------------------------------
-    // SUSPICIOUS
-    //
-    // Elevated risk but insufficient certainty.
-    // -------------------------------------------------------------
-    when score >= 0.6 {
-        set outcome = Suspicious
-        tag += "final:suspicious"
-    }
-
-    // -------------------------------------------------------------
-    // INCONCLUSIVE
-    //
-    // Structural or analytical uncertainty dominates.
-    // -------------------------------------------------------------
-    when any(
-        lstran.signal.analysis.bounds_exceeded,
-        lstran.signal.analysis.partial_parse,
-        lstatic.signal.analysis.incomplete
-    ) {
-        set outcome = Inconclusive
-        tag += "final:inconclusive"
-    }
-
-    // -------------------------------------------------------------
-    // DEFAULT FALLBACK
-    //
-    // If nothing else fires, remain conservative.
-    // -------------------------------------------------------------
-    otherwise {
-        set outcome = Suspicious
-        tag += "final:default-suspicious"
-    }
-}
 
     // -------------------------------------------------------------------------
-    // FINAL DISPATCH
+    // SIGNALS
     //
-    // dipatch here represent *system-level conclusions*.
-    // They are sent to Notary for mediation and downstream handling.
+    // Signals here represent *final semantic states*.
+    //
+    // These are not facts — they are outcomes.
     // -------------------------------------------------------------------------
-    dipatch
-     {
+    signals {
 
-        when outcome == Malicious {
-            emit Emission::ImmediateQuarantineRecommended
-            run deferred Active::Quarantine
+        family final {
+
+            signal benign {
+                description = "Artifact exhibits no meaningful malicious indicators"
+                derive when operation.confidently_benign
+            }
+
+            signal malicious {
+                description = "Artifact exhibits strong, corroborated malicious indicators"
+                derive when operation.confirmed_malicious
+            }
+
+            signal suspicious {
+                description = "Artifact exhibits elevated risk without full certainty"
+                derive when operation.suspicious_behavior
+            }
+
+            signal inconclusive {
+                description = "Analysis incomplete or structurally unreliable"
+                derive when operation.inconclusive_analysis
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // CLINCH
+    //
+    // Clinch:
+    // - Assigns final outcome
+    // - Emits final intent
+    // - Tags for audit and UI
+    //
+    // This is the only place outcomes are set.
+    // -------------------------------------------------------------------------
+    clinch {
+
+        // -------------------------------------------------------------
+        // MALICIOUS
+        // -------------------------------------------------------------
+        when signal.final.malicious {
+            set outcome = Malicious
+            tag += "final:malicious"
+
+            emit Emission::ConfirmedMalware
+            run deferred Action::Quarantine
         }
 
-        when outcome == Suspicious {
-            emit Emission::FurtherReviewSuggested
-            run deferred Active::Review
+        // -------------------------------------------------------------
+        // BENIGN
+        // -------------------------------------------------------------
+        when signal.final.benign {
+            set outcome = Benign
+            tag += "final:benign"
         }
 
-        when outcome == Inconclusive {
+        // -------------------------------------------------------------
+        // INCONCLUSIVE
+        // -------------------------------------------------------------
+        when signal.final.inconclusive {
+            set outcome = Inconclusive
+            tag += "final:inconclusive"
+
             emit Emission::AnalysisIncomplete
-            run deferre User::Forensic
+        }
+
+        // -------------------------------------------------------------
+        // SUSPICIOUS (default elevated posture)
+        // -------------------------------------------------------------
+        when signal.final.suspicious {
+            set outcome = Suspicious
+            tag += "final:suspicious"
+
+            emit Emission::FurtherReviewSuggested
+            run deferred Action::Review
+        }
+
+        // -------------------------------------------------------------
+        // FALLBACK
+        //
+        // Conservatism beats confidence.
+        // -------------------------------------------------------------
+        otherwise {
+            set outcome = Suspicious
+            tag += "final:default-suspicious"
         }
     }
 }

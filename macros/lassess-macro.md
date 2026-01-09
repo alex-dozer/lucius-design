@@ -1,33 +1,25 @@
 ```rust
 // -----------------------------------------------------------------------------
-// lfin! — Lucius Finalization & Outcome DSL
+// lassess! — Lucius Assessor Eligibility DSL
 //
 // Purpose:
-// - Consolidate all upstream facts, signals, and scores
-// - Express a final, stable outcome
-// - Produce human- and system-consumable conclusions
+// - Decide whether an artifact is eligible for deeper static or dynamic analysis
+// - Protect throughput by gating expensive analysis paths
+// - Enforce explicit operator-defined escalation boundaries
 //
-// lfin does NOT:
+// lassess does NOT:
 // - Perform analysis
-// - Generate new observations
-// - Accumulate score
+// - Assign scores or severity
+// - Interpret intent
 // - Execute actions
 //
-// lfin is the *last interpretive step* inside Lucius.
-// Everything after this is mediation, orchestration, or policy.
+// The Assessor answers exactly one question:
+//   "Is escalation justified?"
 //
-// Inputs:
-// - Signals from lstran, lstatic, lyara, lthreat
-// - Accumulated score
-// - Assessor routing outcomes
-//
-// Outputs:
-// - Final outcome classification
-// - Final tags
-// - Final emissions to Notary
+// Output is eligibility intent only.
 // -----------------------------------------------------------------------------
 
-lfin! {
+lassess! {
 
     // -------------------------------------------------------------------------
     // META
@@ -35,35 +27,34 @@ lfin! {
     // Identity, audit, and ownership.
     // -------------------------------------------------------------------------
     meta {
-        name        = "default_finalization_policy"
+        name        = "default_assessor_gate"
         author      = "org-security"
         source      = "analysis-policy"
-        version     = "1.0.0"
+        version     = "0.6.0"
 
-        description = "Final consolidation and outcome expression for Lucius"
+        description = "Eligibility gate for static and deep analysis"
     }
 
     // -------------------------------------------------------------------------
     // OPERATIONS
     //
-    // Operations define *interpretive groupings* over existing facts.
+    // Operations describe *decision predicates* over existing signals.
     //
     // They:
-    // - Combine signals and score into stable predicates
-    // - Encode final reasoning structure
-    // - Do NOT mutate state
+    // - Combine signals declaratively
+    // - Encode operator escalation logic
+    // - Do NOT create new facts
     //
-    // Think: "How do we recognize a terminal condition?"
+    // Think: "conditions under which escalation is allowed or denied".
     // -------------------------------------------------------------------------
     operations {
 
         // -------------------------------------------------------------
-        // Strong benign posture
+        // Explicit non-escalation cases
         // -------------------------------------------------------------
-        operation confidently_benign {
+        operation explicitly_benign {
             when all(
                 lstran.signal.format.known_benign,
-                score < 0.3,
                 not any(
                     lyara.signal.signature.known_malware,
                     lstatic.signal.execution.advanced_technique,
@@ -73,73 +64,67 @@ lfin! {
         }
 
         // -------------------------------------------------------------
-        // Corroborated malicious indicators
+        // Structural deception indicators
         // -------------------------------------------------------------
-        operation confirmed_malicious {
+        operation structural_deception {
             when any(
-                all(
-                    lyara.signal.signature.known_malware,
-                    lthreat.signal.reputation.corroborated_intel
-                ),
-                all(
-                    lstatic.signal.execution.advanced_technique,
-                    score >= 0.85
-                )
+                lstran.signal.format.mismatch,
+                lstran.signal.format.unknown
             )
         }
 
         // -------------------------------------------------------------
-        // Suspicious but inconclusive
+        // Strong pattern-based indicators
         // -------------------------------------------------------------
-        operation suspicious_behavior {
+        operation strong_pattern_indicators {
+            when any(
+                lyara.signal.payload.shellcode_like,
+                lyara.signal.signature.known_malware
+            )
+        }
+
+        // -------------------------------------------------------------
+        // Capability-based escalation
+        // -------------------------------------------------------------
+        operation advanced_capabilities {
             when all(
-                score >= 0.6,
-                score < 0.85,
-                not operation.confirmed_malicious
+                lstatic.signal.execution.advanced_technique,
+                lstatic.signal.execution.runtime_code_generation
             )
         }
 
         // -------------------------------------------------------------
-        // Analysis integrity failure
+        // Corroborated external intelligence
         // -------------------------------------------------------------
-        operation inconclusive_analysis {
-            when any(
-                lstran.signal.analysis.bounds_exceeded,
-                lstran.signal.analysis.partial_parse,
-                lstatic.signal.analysis.incomplete
-            )
+        operation corroborated_threat_intel {
+            when lthreat.signal.reputation.corroborated_intel
         }
     }
 
     // -------------------------------------------------------------------------
     // SIGNALS
     //
-    // Signals here represent *final semantic states*.
+    // Assessor does not introduce new signals.
     //
-    // These are not facts — they are outcomes.
+    // This section exists only to *expose decision outcomes*.
     // -------------------------------------------------------------------------
     signals {
 
-        family fin {
+        family assessor {
 
-            signal benign {
-                description = "Artifact exhibits no meaningful malicious indicators"
-                derive when operation.confidently_benign
+            signal escalation_allowed {
+                description = "Artifact meets conditions for deeper analysis"
+                derive when any(
+                    operation.structural_deception,
+                    operation.strong_pattern_indicators,
+                    operation.advanced_capabilities,
+                    operation.corroborated_threat_intel
+                )
             }
 
-            signal malicious {
-                description = "Artifact exhibits strong, corroborated malicious indicators"
-                derive when operation.confirmed_malicious
-            }
-
-            signal suspicious {
-                description = "Artifact exhibits elevated risk without full certainty"
-                derive when operation.suspicious_behavior
-            }
-
-            signal inconclusive {
-                description = "Analysis incomplete or structurally unreliable"
-                derive when operation.inconclusive_analysis
+            signal escalation_denied {
+                description = "Artifact explicitly excluded from escalation"
+                derive when operation.explicitly_benign
             }
         }
     }
@@ -147,64 +132,36 @@ lfin! {
     // -------------------------------------------------------------------------
     // CLINCH
     //
-    // Clinch:
-    // - Assigns final outcome
-    // - Emits final intent
-    // - Tags for audit and UI
-    // - Outcomes are user defined
+    // Clinch expresses eligibility intent only.
     //
-    // This is the only place outcomes are set.
+    // No execution.
+    // No inference.
+    // No override of upstream facts.
     // -------------------------------------------------------------------------
     clinch {
 
         // -------------------------------------------------------------
-        // MALICIOUS
+        // Hard deny always wins
         // -------------------------------------------------------------
-        when signal.final.malicious {
-            set outcome = Malicious
-            tag += "final:malicious"
-
-            emit Emission::ConfirmedMalware
-            run deferred Action::Quarantine
+        when signal.assessor.escalation_denied {
+            tag += "assessor:deny"
         }
 
         // -------------------------------------------------------------
-        // BENIGN
+        // Allow escalation
         // -------------------------------------------------------------
-        when signal.final.benign {
-            set outcome = Benign
-            tag += "final:benign"
+        when signal.assessor.escalation_allowed {
+            tag += "assessor:allow"
+            run deferred Route::ToStaticAnalysis
         }
 
         // -------------------------------------------------------------
-        // INCONCLUSIVE
-        // -------------------------------------------------------------
-        when signal.final.inconclusive {
-            set outcome = Inconclusive
-            tag += "final:inconclusive"
-
-            emit Emission::AnalysisIncomplete
-        }
-
-        // -------------------------------------------------------------
-        // SUSPICIOUS (default elevated posture)
-        // -------------------------------------------------------------
-        when signal.final.suspicious {
-            set outcome = Suspicious
-            tag += "final:suspicious"
-
-            emit Emission::FurtherReviewSuggested
-            run deferred Action::Review
-        }
-
-        // -------------------------------------------------------------
-        // FALLBACK
+        // Default posture
         //
-        // Conservatism beats confidence.
+        // Absence of allow == no escalation
         // -------------------------------------------------------------
         otherwise {
-            set outcome = Suspicious
-            tag += "final:default-suspicious"
+            tag += "assessor:continue"
         }
     }
 }

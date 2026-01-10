@@ -18,7 +18,7 @@ This separation is intentional and foundational.
 
 ## Design Goals
 
-The clinch DSL exists to:
+The clinched DSL exists to:
 
 - Express conditions over system facts in a uniform way
 - Avoid stringly-typed, ad-hoc configuration
@@ -33,7 +33,7 @@ The language prioritizes **clarity over cleverness** and **constraints over expr
 
 ## Non-Goals
 
-The clinch DSL is **not**:
+The clinched DSL is **not**:
 
 - A runtime scripting language
 - Turing complete

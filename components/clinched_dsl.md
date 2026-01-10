@@ -1,10 +1,10 @@
-# Lucius Declarative Language (DSL)
+# clinched DSL
 
 ## Overview
 
-Lucius uses a **declarative, compile-time enforced language contract** to express **conditions over observed facts** and **actions to take when those conditions hold**.
+Lucius/Ben uses a **declarative, compile-time enforced language contract** to express **conditions over observed facts** and **actions to take when those conditions hold**.
 
-The Lucius DSL is **not a standalone programming language** and **not a scripting engine**.  
+The clinched DSL is **not a standalone programming language** and **not a scripting engine**.  
 It is a **rule and intent language** designed to remain legible, auditable, and deterministic in adversarial environments.
 
 Although originally developed for Lucius, this DSL is designed to be **shared across Ben components** (proxy, sidecars, detectors, orchestrator), with Lucius providing **additional domain-specific extensions**.
@@ -18,7 +18,7 @@ This separation is intentional and foundational.
 
 ## Design Goals
 
-The Lucius DSL exists to:
+The clinch DSL exists to:
 
 - Express conditions over system facts in a uniform way
 - Avoid stringly-typed, ad-hoc configuration
@@ -33,7 +33,7 @@ The language prioritizes **clarity over cleverness** and **constraints over expr
 
 ## Non-Goals
 
-The Lucius DSL is **not**:
+The clinch DSL is **not**:
 
 - A runtime scripting language
 - Turing complete
@@ -397,28 +397,85 @@ Keeping ```select``` free of logic preserves determinism, prevents ambiguity, an
 
 ---
 
+## meta
+### Purpose: 
+- Identity
+- audit
+- applicability.
+-   Declares what this macro is
+-   Provides versioning and provenance
+-   Enables replay, diffing, and governance
 
-## Macro Families
+### Properties:
+-   No logic
+-   No conditionals
+-   No access to data
+-   No behavioral impact
 
-Lucius is implemented through **domain-specific declarative proc macros**, each enforcing a bounded subset of the DSL.
+### Invariant:
+>**meta** may never influence execution or reasoning.
 
-Each macro:
-- Accepts only domain-appropriate constructs
-- Rejects invalid constructs at compile time
-- Produces typed, versioned artifacts
-- Cannot express concerns outside its domain
+---
 
-### Example Macro Families
+## operations
 
-| Macro       | Domain Purpose |
-|------------|----------------|
-| `lstran!`  | Structural analysis and artifact legibility |
-| `lyara!`   | Pattern-based matching and signatures |
-| `lstat!`   | Statistical signals and derived metrics |
-| `lstatic!` | Static analysis declarations |
-| `lthreat!` | External threat correlation |
+### Purpose: 
+Declare the bounded work this component is allowed to perform.
+-   Defines what kinds of inspection or correlation are permitted
+-   Establishes hard limits and scope
+-   Surfaces raw, structured results
 
-All macros share the same **underlying language contract**, even as their allowed actions differ.
+### Properties:
+-   Deterministic
+-   Bounded
+-   Component-specific
+-   No interpretation
+-   No scoring
+-   No intent
+
+### Invariant:
+>**operations** describe capability, not meaning.
+
+---
+
+## signals
+### Purpose: 
+Define facts derived from **operations**.
+-   Typed, explicit observations
+-   Boolean or bounded numeric
+-   Namespaced and structured
+-   Documented and auditable
+
+### Properties:
+-   Derived only from **operations**
+-   Carry no verdict or authority
+-   Stable inputs for downstream reasoning
+
+### Invariant:
+
+>**signals** are true or false, not good or bad.
+
+---
+
+## clinch
+
+### Purpose: 
+Express consequences of observed facts.
+-   Accumulate score (where allowed)
+-   Attach tags
+-   Promote or combine **signals**
+-   Request escalation or downstream intent
+
+### Properties:
+-   No new data extraction
+-   No hidden execution
+-   No back-edges
+-   No environment access
+
+### Invariant:
+>**clinch** reasons over facts; it does not create them.
+
+
 
 ---
 
@@ -450,7 +507,7 @@ Failure is a first-class outcome, not an error to be concealed.
 
 ## Summary
 
-The Lucius DSL is:
+The Lucius/Ben DSL is:
 
 - Declarative
 - Observation-driven

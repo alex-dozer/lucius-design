@@ -1,6 +1,6 @@
 ```rust
 // -----------------------------------------------------------------------------
-// lstatic! — Lucius Static Feature Extraction DSL
+// lstatic! - Lucius Static Feature Extraction DSL
 //
 // Purpose:
 // - Perform bounded, deterministic static feature extraction

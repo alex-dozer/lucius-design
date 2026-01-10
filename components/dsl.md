@@ -230,7 +230,7 @@ via a proc macro.
 
 ---
 
-## from — Data Source Selection
+## from - Data Source Selection
 
 The ```from``` keyword **declares** which data substrate an operation is **allowed** to read from.
 
@@ -259,6 +259,10 @@ It selects a predefined, read-only data source provided by the enclosing compone
 - ccesses external systems
 - alls user-defined logic
 
+
+---
+
+## 
 
 ---
 

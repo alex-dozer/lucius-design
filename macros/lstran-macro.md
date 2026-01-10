@@ -1,6 +1,6 @@
 ```rust
 // -----------------------------------------------------------------------------
-// lstran! — Lucius Structural Analysis DSL
+// lstran! - Lucius Structural Analysis DSL
 //
 // Purpose:
 // - Perform bounded structural inspection of artifacts
@@ -80,7 +80,7 @@ lstran! {
         // Lightweight text plausibility check
         // -------------------------------------------------------------
         operation inspect_text_characteristics {
-            // Hard bounds — structural contract
+            // Hard bounds  structural contract
             max_bytes = 512.kib
 
             // What decoding attempt is allowed

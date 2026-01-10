@@ -1,6 +1,6 @@
 ```rust
 // -----------------------------------------------------------------------------
-// lfin! — Lucius Finalization & Outcome DSL
+// lfin! - Lucius Finalization & Outcome DSL
 //
 // Purpose:
 // - Consolidate all upstream facts, signals, and scores
@@ -116,7 +116,7 @@ lfin! {
     //
     // Signals here represent *final semantic states*.
     //
-    // These are not facts — they are outcomes.
+    // These are not facts - they are outcomes.
     // -------------------------------------------------------------------------
     signals {
 

@@ -1,6 +1,6 @@
 ```rust
 // -----------------------------------------------------------------------------
-// lthreat! — Lucius Threat Intelligence Correlation DSL
+// lthreat! - Lucius Threat Intelligence Correlation DSL
 //
 // Purpose:
 // - Correlate artifacts against external threat intelligence feeds

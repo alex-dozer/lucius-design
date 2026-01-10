@@ -1,6 +1,6 @@
 ```rust
 // -----------------------------------------------------------------------------
-// lassess! — Lucius Assessor Eligibility DSL
+// lassess! - Lucius Assessor Eligibility DSL
 //
 // Purpose:
 // - Decide whether an artifact is eligible for deeper static or dynamic analysis

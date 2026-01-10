@@ -1,6 +1,6 @@
 ```rust
 // -----------------------------------------------------------------------------
-// lyara! — Lucius YARA-style Pattern Correlation DSL
+// lyara! - Lucius YARA-style Pattern Correlation DSL
 //
 // Purpose:
 // - Perform bounded pattern matching over artifacts
